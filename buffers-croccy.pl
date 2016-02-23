@@ -1282,6 +1282,8 @@ sub build_buffers
                     weechat::color("default");
         }
 
+        #$str .= "p";
+	
         if ( weechat::config_boolean( $options{"show_number"} ) eq 1 )   # on
         {
             if (( weechat::config_boolean( $options{"indenting_number"} ) eq 1)
@@ -1383,10 +1385,15 @@ sub build_buffers
                 }
             }
         }
+
+    	#$str .= "b";
+
         if ($buffer->{"type"} eq "channel" and weechat::config_boolean( $options{"mark_inactive"} ) eq 1 and $buffer->{"nicks_count"} == 0)
         {
             $str .= "(";
         }
+
+    	# Start of non-prefixed buffer names here
 
         $str .= weechat::color($color) . weechat::color(",".$bg);
 
@@ -1400,13 +1407,35 @@ sub build_buffers
             }
         }
 
+	    #$str .= "c";
+
+	    # Changes made here for custom column sizing
+
         if (weechat::config_integer($options{"name_size_max"}) >= 1)                # check max_size of buffer name
         {
+	    my $str_size = 0;
             $name = decode("UTF-8", $name);
-            $str .= encode("UTF-8", substr($name, 0, weechat::config_integer($options{"name_size_max"})));
-            $str .= weechat::color(weechat::config_color( $options{"color_number_char"})).weechat::config_string($options{"name_crop_suffix"}) if (length($name) > weechat::config_integer($options{"name_size_max"}));
-            $str .= add_inactive_parentless($buffer->{"type"}, $buffer->{"nicks_count"});
-            $str .= add_hotlist_count($buffer->{"pointer"}, %hotlist);
+	        $str_size .= length($name);
+	
+    	    if ($str_size > weechat::config_integer($options{"name_size_max"}))
+	        {
+		        $str .= encode("UTF-8", substr($name, 0, weechat::config_integer($options{"name_size_max"})));
+    	    }
+	        else
+            {
+		        $str .= encode("UTF-8", $name);
+            }
+
+            # Padding to fill requested max_size
+            $str .= ( ' ' x (weechat::config_integer($options{"name_size_max"}) - $str_size) );
+
+            #$str .= weechat::color(weechat::config_color( $options{"color_number_char"})).weechat::config_string($options{"name_crop_suffix"}) if (length($name) > weechat::config_integer($options{"name_size_max"}));
+            #$str .= add_inactive_parentless($buffer->{"type"}, $buffer->{"nicks_count"});
+            #$str .= add_hotlist_count($buffer->{"pointer"}, %hotlist);
+	        # Manually build 
+
+            #$str .= " ";
+    	    #$str .= $str_size;
         }
         else
         {
@@ -1415,6 +1444,7 @@ sub build_buffers
             $str .= add_hotlist_count($buffer->{"pointer"}, %hotlist);
         }
 
+	    #$str .= "s";
         if ( weechat::buffer_get_string($buffer->{"pointer"}, "localvar_type") eq "server" and weechat::config_boolean($options{"show_lag"}) eq 1)
         {
             my $color_lag = weechat::config_color(weechat::config_get("irc.color.item_lag_finished"));
