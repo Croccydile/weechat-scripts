@@ -168,7 +168,7 @@
 use strict;
 use Encode qw( decode encode );
 # -----------------------------[ internal ]-------------------------------------
-my $SCRIPT_NAME = "buffers-croccydile";
+my $SCRIPT_NAME = "buffers";
 my $SCRIPT_VERSION = "5.2";
 
 my $BUFFERS_CONFIG_FILE_NAME = "buffers";
