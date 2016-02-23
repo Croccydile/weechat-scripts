@@ -19,6 +19,9 @@
 # Display sidebar with list of buffers.
 #
 # History:
+
+# 2016-02-23, Modified for fixed width column sizing
+
 #
 # 2015-03-29, Ed Santiago <ed@edsantiago.com>
 #     v5.1: merged buffers: always indent, except when filling is horizontal
@@ -165,8 +168,8 @@
 use strict;
 use Encode qw( decode encode );
 # -----------------------------[ internal ]-------------------------------------
-my $SCRIPT_NAME = "buffers";
-my $SCRIPT_VERSION = "5.1";
+my $SCRIPT_NAME = "buffers-croccydile";
+my $SCRIPT_VERSION = "5.2";
 
 my $BUFFERS_CONFIG_FILE_NAME = "buffers";
 my $buffers_config_file;
