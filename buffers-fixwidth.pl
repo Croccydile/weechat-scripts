@@ -20,6 +20,8 @@
 #
 # History:
 #
+# Attempted modifications for fixed column width
+#
 # 2015-03-29, Ed Santiago <ed@edsantiago.com>
 #     v5.1: merged buffers: always indent, except when filling is horizontal
 # 2014-12-12
@@ -1151,6 +1153,10 @@ sub build_buffers
     foreach my $key (sort keys %sorted_buffers)
     {
         my $buffer = $sorted_buffers{$key};
+        # ********************************************************************************
+        # Build a per-iteration string rather than all at once
+        # ********************************************************************************
+        my $current_str = "";
 
         if ( weechat::config_string($options{"hide_merged_buffers"}) eq "server" )
         {
@@ -1273,7 +1279,7 @@ sub build_buffers
         # create channel number for output
         if ( weechat::config_string( $options{"show_prefix_bufname"} ) ne "" )
         {
-            $str .= $color_bg .
+            $current_str .= $color_bg .
                     weechat::color( weechat::config_color( $options{"color_prefix_bufname"} ) ).
                     weechat::config_string( $options{"show_prefix_bufname"} ).
                     weechat::color("default");
@@ -1284,12 +1290,12 @@ sub build_buffers
             if (( weechat::config_boolean( $options{"indenting_number"} ) eq 1)
                 && (($position eq "left") || ($position eq "right")))
             {
-                $str .= weechat::color("default").$color_bg
+                $current_str .= weechat::color("default").$color_bg
                     .(" " x ($max_number_digits - length(int($buffer->{"number"}))));
             }
             if ($old_number ne $buffer->{"number"})
             {
-                $str .= weechat::color( weechat::config_color( $options{"color_number"} ) )
+                $current_str .= weechat::color( weechat::config_color( $options{"color_number"} ) )
                     .$color_bg
                     .$buffer->{"number"}
                     .weechat::color("default")
@@ -1311,7 +1317,7 @@ sub build_buffers
                         $indent = '';
                     }
                 }
-                $str .= weechat::color("default")
+                $current_str .= weechat::color("default")
                     .$color_bg
                     .$indent;
             }
@@ -1325,22 +1331,22 @@ sub build_buffers
             {
                 if ( weechat::config_integer( $options{"indenting"} ) eq 1 )
                 {
-                    $str .= "  ";
+                    $current_str .= "  ";
                 }
                 elsif ( (weechat::config_integer($options{"indenting"}) eq 2) and (weechat::config_integer($options{"indenting_number"}) eq 0) )        #under_name
                 {
                     if ( weechat::config_boolean( $options{"show_number"} ) eq 0 )
                     {
-                      $str .= "  ";
+                      $current_str .= "  ";
                     }else
                     {
-                      $str .= ( (" " x ( $max_number_digits - length($buffer->{"number"}) ))." " );
+                      $current_str .= ( (" " x ( $max_number_digits - length($buffer->{"number"}) ))." " );
                     }
                 }
             }
         }
 
-        $str .= weechat::config_string( $options{"show_prefix_query"}) if (weechat::config_string( $options{"show_prefix_query"} ) ne "" and  $buffer->{"type"} eq "private");
+        $current_str .= weechat::config_string( $options{"show_prefix_query"}) if (weechat::config_string( $options{"show_prefix_query"} ) ne "" and  $buffer->{"type"} eq "private");
 
         if (weechat::config_boolean( $options{"show_prefix"} ) eq 1)
         {
@@ -1363,15 +1369,15 @@ sub build_buffers
                                 # with version >= 0.3.5, it is now a color name (for older versions: option name with color)
                                 if (int($weechat_version) >= 0x00030500)
                                 {
-                                    $str .= weechat::color(weechat::infolist_string($infolist_nick, "prefix_color"));
+                                    $current_str .= weechat::color(weechat::infolist_string($infolist_nick, "prefix_color"));
                                 }
                                 else
                                 {
-                                    $str .= weechat::color(weechat::config_color(
+                                    $current_str .= weechat::color(weechat::config_color(
                                                                weechat::config_get(
                                                                    weechat::infolist_string($infolist_nick, "prefix_color"))));
                                 }
-                                $str .= $prefix;
+                                $current_str .= $prefix;
                             }
                             last;
                         }
@@ -1382,10 +1388,10 @@ sub build_buffers
         }
         if ($buffer->{"type"} eq "channel" and weechat::config_boolean( $options{"mark_inactive"} ) eq 1 and $buffer->{"nicks_count"} == 0)
         {
-            $str .= "(";
+            $current_str .= "(";
         }
 
-        $str .= weechat::color($color) . weechat::color(",".$bg);
+        $current_str .= weechat::color($color) . weechat::color(",".$bg);
 
         my $name = weechat::buffer_get_string($buffer->{"pointer"}, "localvar_custom_name");
         if (not defined $name or $name eq "")
@@ -1400,16 +1406,16 @@ sub build_buffers
         if (weechat::config_integer($options{"name_size_max"}) >= 1)                # check max_size of buffer name
         {
             $name = decode("UTF-8", $name);
-            $str .= encode("UTF-8", substr($name, 0, weechat::config_integer($options{"name_size_max"})));
-            $str .= weechat::color(weechat::config_color( $options{"color_number_char"})).weechat::config_string($options{"name_crop_suffix"}) if (length($name) > weechat::config_integer($options{"name_size_max"}));
-            $str .= add_inactive_parentless($buffer->{"type"}, $buffer->{"nicks_count"});
-            $str .= add_hotlist_count($buffer->{"pointer"}, %hotlist);
+            $current_str .= encode("UTF-8", substr($name, 0, weechat::config_integer($options{"name_size_max"})));
+            $current_str .= weechat::color(weechat::config_color( $options{"color_number_char"})).weechat::config_string($options{"name_crop_suffix"}) if (length($name) > weechat::config_integer($options{"name_size_max"}));
+            $current_str .= add_inactive_parentless($buffer->{"type"}, $buffer->{"nicks_count"});
+            $current_str .= add_hotlist_count($buffer->{"pointer"}, %hotlist);
         }
         else
         {
-            $str .= $name;
-            $str .= add_inactive_parentless($buffer->{"type"}, $buffer->{"nicks_count"});
-            $str .= add_hotlist_count($buffer->{"pointer"}, %hotlist);
+            $current_str .= $name;
+            $current_str .= add_inactive_parentless($buffer->{"type"}, $buffer->{"nicks_count"});
+            $current_str .= add_hotlist_count($buffer->{"pointer"}, %hotlist);
         }
 
         if ( weechat::buffer_get_string($buffer->{"pointer"}, "localvar_type") eq "server" and weechat::config_boolean($options{"show_lag"}) eq 1)
@@ -1423,7 +1429,7 @@ sub build_buffers
             if ( int($lag) > int($min_lag) )
             {
                 $lag = $lag / 1000;
-                $str .= weechat::color("default") . " (" . weechat::color($color_lag) . $lag . weechat::color("default") . ")";
+                $current_str .= weechat::color("default") . " (" . weechat::color($color_lag) . $lag . weechat::color("default") . ")";
             }
         }
         if (weechat::config_boolean($options{"detach_displayed_buffers"}) eq 0
@@ -1431,18 +1437,80 @@ sub build_buffers
         {
             if ($buffer->{"window"})
             {
-                $str .= weechat::color("default") . " (" . weechat::color(weechat::config_color( $options{"color_number"})) . $buffer->{"window"} . weechat::color("default") . ")";
+                $current_str .= weechat::color("default") . " (" . weechat::color(weechat::config_color( $options{"color_number"})) . $buffer->{"window"} . weechat::color("default") . ")";
             }
         }
-        $str .= weechat::color("default");
+        $current_str .= weechat::color("default");
 
         if ( weechat::config_string( $options{"show_suffix_bufname"} ) ne "" )
         {
-            $str .= weechat::color( weechat::config_color( $options{"color_suffix_bufname"} ) ).
+            $current_str .= weechat::color( weechat::config_color( $options{"color_suffix_bufname"} ) ).
                     weechat::config_string( $options{"show_suffix_bufname"} ).
                     weechat::color("default");
         }
 
+        # ********************************************************************************
+        # Modifications to do fixed sized columns
+        # ********************************************************************************
+
+        # We need to locate where to truncate the string given colour codes
+        
+        # Count of non-coloured characters
+        my $regchar_count = 0;
+        my $str_count = 0;
+        my $string_regex = '(\x19([0-9,*@_]{0,}))';
+
+        # Unpack our current string into an array for analysis
+        my @str_unpack = unpack("C*", $current_str);
+        
+        # Build an output string while ignoring colour codes
+        while ($str_unpack[$str_count])
+        {
+            # Color prefix
+            if ($str_unpack[$str_count] == 0x19)
+            $str_count++;
+        }
+        #my $str_copy = $current_str;
+
+        #while ($str_copy =~ s/\x19//g) {
+        #    $str .= "k";
+            
+        #}
+        #while (my $str_compare = )
+        #{
+        #    if ($str_compare =~ s/\x19//g)
+        #    {
+        #        $str .= "y";
+        #    } 
+        #    else 
+        #    {
+        #        $str .= "n";
+        #    }
+        #}
+
+        #foreach my $curchar (unpack("C*", $current_str)) 
+        #{
+            # Catch escape code for colours
+        #    if ($curchar == 0x19)
+        #    {
+        #        next;
+
+        #    }
+        #    else
+        #    {
+        #        $str .= sprintf("%02x", $curchar);
+                # Debugging 
+        #        $regchar_count++;
+        #        next;
+        #    }
+            
+            # s/\x1b\[[0-9;]*m//g;            
+
+            #$current_char++;
+        #}
+
+        $str .= $current_str;
+        #$str .= " ". $regchar_count;
         $str .= "\n";
         $old_number = $buffer->{"number"};
     }
@@ -1451,6 +1519,15 @@ sub build_buffers
     $str =~ s/\s+$//;
     chomp($str);
     return $str;
+}
+
+sub all_match_positions {
+    my ($regex, $string) = @_;
+    my @ret;
+    while ($string =~ /($regex)/g) {
+        push @ret, [(pos($string)-length $1),pos($string)];
+    }
+    return @ret
 }
 
 sub add_inactive_parentless
