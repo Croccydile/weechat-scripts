@@ -1455,14 +1455,10 @@ sub build_buffers
 
         # Regex for finding weechat color codes
         #my $string_regex = '\x19([FB,@*!/_|]{0,})?([0-9]{2,5})?([FB,@*!/_|]{0,})?([0-9]{2,5})';
+
+        # This one seems to work better...
         my $string_regex = '\x19([FB]?[0-9]{2})|\x19([FB@]{2,}?[0-9]{5})';
         my @string_matches = all_match_positions($string_regex, $current_str);
-
-        #foreach my $match_index (@string_matches)
-        #{
-        #    $str .= "m". @$match_index[0]. " ";
-        #    $str .= @$match_index[1]. " ";
-        #}
 
         # Unpack our current string into an array for analysis
         my @str_unpack = unpack("C*", $current_str);
@@ -1477,9 +1473,6 @@ sub build_buffers
             # Not sure how to improve this part
             foreach my $match_index (@string_matches)
             {
-                #$str .= @$match_index[0]. " ". @$match_index[1]. " ";
-                #if ($str_count = @$match_index[0])
-                
                 # If the string index is within the matched char positions, we flag this index to skip
                 if ( ($str_count >= @$match_index[0]) && ($str_count <= @$match_index[1]) )
                 {
@@ -1491,12 +1484,6 @@ sub build_buffers
             if ($char_count < 20)
             {
                 $str .= chr($str_unpack[$str_count]);
-                #if ($str_unpack[$str_count] == 0x19) {
-                #    $str .= "x ";
-                #} else {   
-                #   $str .= chr($str_unpack[$str_count]). " ";
-                #}
-                #$str .= sprintf("%02x", $str_unpack[$str_count]). " ";
             }
 
             # If we are not on an invisible color code, increment character count
