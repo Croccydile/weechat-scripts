@@ -1453,6 +1453,7 @@ sub build_buffers
         # Modifications to do fixed sized columns
         # ********************************************************************************
 
+        use constant SIZE_LIMIT => 20;
         # Regex for finding weechat color codes
         #my $string_regex = '\x19([FB,@*!/_|]{0,})?([0-9]{2,5})?([FB,@*!/_|]{0,})?([0-9]{2,5})';
 
@@ -1481,7 +1482,7 @@ sub build_buffers
             }
             
             # Build the output string as long as our character count is below the limit   
-            if ($char_count < 20)
+            if ($char_count < SIZE_LIMIT)
             {
                 $str .= chr($str_unpack[$str_count]);
             }
@@ -1498,12 +1499,14 @@ sub build_buffers
         }
 
         # Pad any remaing spaces to make fixed width
-        while ($char_count < 20)
+        while ($char_count < SIZE_LIMIT)
         {
             $str .= " ";
             $char_count++;
         }
 
+        # Debug to make sure the size is correct
+        #$str .= "|";
         $str .= "\n";
         $old_number = $buffer->{"number"};
     }
