@@ -1453,64 +1453,70 @@ sub build_buffers
         # Modifications to do fixed sized columns
         # ********************************************************************************
 
-        # We need to locate where to truncate the string given colour codes
-        
-        # Count of non-coloured characters
-        my $regchar_count = 0;
-        my $str_count = 0;
-        my $string_regex = '(\x19([0-9,*@_]{0,}))';
+        # Regex for finding weechat color codes
+        #my $string_regex = '\x19([FB,@*!/_|]{0,})?([0-9]{2,5})?([FB,@*!/_|]{0,})?([0-9]{2,5})';
+        my $string_regex = '\x19([FB]?[0-9]{2})|\x19([FB@]{2,}?[0-9]{5})';
+        my @string_matches = all_match_positions($string_regex, $current_str);
+
+        #foreach my $match_index (@string_matches)
+        #{
+        #    $str .= "m". @$match_index[0]. " ";
+        #    $str .= @$match_index[1]. " ";
+        #}
 
         # Unpack our current string into an array for analysis
         my @str_unpack = unpack("C*", $current_str);
         
         # Build an output string while ignoring colour codes
+        my $char_count = 0;
+        my $str_count = 0;
         while ($str_unpack[$str_count])
         {
-            # Color prefix
-            if ($str_unpack[$str_count] == 0x19)
+            my $skip_index = 0;
+            # Not very efficient here, checks from the regex match list each iteration
+            # Not sure how to improve this part
+            foreach my $match_index (@string_matches)
+            {
+                #$str .= @$match_index[0]. " ". @$match_index[1]. " ";
+                #if ($str_count = @$match_index[0])
+                
+                # If the string index is within the matched char positions, we flag this index to skip
+                if ( ($str_count >= @$match_index[0]) && ($str_count <= @$match_index[1]) )
+                {
+                    $skip_index = 1;
+                }
+            }
+            
+            # Build the output string as long as our character count is below the limit   
+            if ($char_count < 20)
+            {
+                $str .= chr($str_unpack[$str_count]);
+                #if ($str_unpack[$str_count] == 0x19) {
+                #    $str .= "x ";
+                #} else {   
+                #   $str .= chr($str_unpack[$str_count]). " ";
+                #}
+                #$str .= sprintf("%02x", $str_unpack[$str_count]). " ";
+            }
+
+            # If we are not on an invisible color code, increment character count
+            # Important that this is after the string building
+            if (!$skip_index)
+            {
+                $char_count++;
+            }
+
+            # Loop next string index
             $str_count++;
         }
-        #my $str_copy = $current_str;
 
-        #while ($str_copy =~ s/\x19//g) {
-        #    $str .= "k";
-            
-        #}
-        #while (my $str_compare = )
-        #{
-        #    if ($str_compare =~ s/\x19//g)
-        #    {
-        #        $str .= "y";
-        #    } 
-        #    else 
-        #    {
-        #        $str .= "n";
-        #    }
-        #}
+        # Pad any remaing spaces to make fixed width
+        while ($char_count < 20)
+        {
+            $str .= " ";
+            $char_count++;
+        }
 
-        #foreach my $curchar (unpack("C*", $current_str)) 
-        #{
-            # Catch escape code for colours
-        #    if ($curchar == 0x19)
-        #    {
-        #        next;
-
-        #    }
-        #    else
-        #    {
-        #        $str .= sprintf("%02x", $curchar);
-                # Debugging 
-        #        $regchar_count++;
-        #        next;
-        #    }
-            
-            # s/\x1b\[[0-9;]*m//g;            
-
-            #$current_char++;
-        #}
-
-        $str .= $current_str;
-        #$str .= " ". $regchar_count;
         $str .= "\n";
         $old_number = $buffer->{"number"};
     }
@@ -1525,7 +1531,7 @@ sub all_match_positions {
     my ($regex, $string) = @_;
     my @ret;
     while ($string =~ /($regex)/g) {
-        push @ret, [(pos($string)-length $1),pos($string)];
+        push @ret, [(pos($string)-length $1),pos($string)-1];
     }
     return @ret
 }
